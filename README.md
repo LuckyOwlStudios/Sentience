@@ -1,4 +1,4 @@
-# Races
+# Sentience
 
 A Minecraft 1.21.1 mod (Fabric + NeoForge) that adds races to the game, and a reputation with each race for every player.
 
@@ -22,8 +22,8 @@ Reputation starts at 0 and stays between -100 and 100. Every change shows in the
 ## Adding a race
 
 Races are data-driven. Add a JSON file to a datapack or your mod's resources at
-`data/<namespace>/races/race/<name>.json`. The file's location is the race's id, so
-`data/mymod/races/race/elves.json` is `mymod:elves`.
+`data/<namespace>/sentience/race/<name>.json`. The file's location is the race's id, so
+`data/mymod/sentience/race/elves.json` is `mymod:elves`.
 
 ```json
 {
@@ -44,20 +44,20 @@ Races are data-driven. Add a JSON file to a datapack or your mod's resources at
 - `reputation`: the starting value and the bounds. Defaults to 0, -100 and 100.
 - `changes`: how much each built-in action changes reputation with this race. Leave one out (or use 0) to turn it off.
 
-Datapacks can also override the default races, e.g. replace `data/races/races/race/illagers.json` or add entities to the `races:villagers`, `races:illagers` and `races:piglins` entity type tags.
+Datapacks can also override the default races, e.g. replace `data/sentience/sentience/race/illagers.json` or add entities to the `sentience:villagers`, `sentience:illagers` and `sentience:piglins` entity type tags.
 
 ### Choosing a race in code
 
 If membership depends on more than the entity type:
 
-- implement `RaceMember` on your entity and return a race key from `races$getRace()`, or
+- implement `RaceMember` on your entity and return a race key from `sentience$getRace()`, or
 - call `Races.registerResolver(entity -> ...)` during mod setup for entities you don't own.
 
 Return `null` from either to fall back to the race's `members`.
 
 ## Reputation API
 
-Everything is in `net.luckyowlstudios.races.api` and works the same on both loaders. Server side only.
+Everything is in `net.luckyowlstudios.sentience.api` and works the same on both loaders. Server side only.
 
 ```java
 // Read
@@ -88,7 +88,7 @@ ReputationEvents.onChanged((server, playerId, race, oldValue, newValue, cause) -
 
 Your own races get a key the same way: `Races.key(ResourceLocation.fromNamespaceAndPath("mymod", "elves"))`.
 
-Reputation is saved with the world (`data/races_reputation.dat`), so it survives death and can be changed while a player is offline.
+Reputation is saved with the world (`data/sentience_reputation.dat`), so it survives death and can be changed while a player is offline.
 
 ## Commands
 

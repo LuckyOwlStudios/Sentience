@@ -1,0 +1,13 @@
+{
+  "race.sentience.villagers": "Villagers",
+  "race.sentience.illagers": "Illagers",
+  "race.sentience.piglins": "Piglins",
+  "sentience.reputation.increased": "%s reputation +%s (%s)",
+  "sentience.reputation.decreased": "%s reputation -%s (%s)",
+  "commands.sentience.unknown_race": "Unknown race: %s",
+  "commands.sentience.get": "%s has %3$s reputation with %2$s",
+  "commands.sentience.get_all": "Reputation of %s:",
+  "commands.sentience.get_all.entry": "  %s: %s",
+  "commands.sentience.set": "%s now has %3$s reputation with %2$s",
+  "commands.sentience.reset": "Reset reputation for %s player(s)"
+}

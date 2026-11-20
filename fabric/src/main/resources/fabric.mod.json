@@ -8,16 +8,16 @@
         "${mod_author}"
     ],
     "contact": {
-        "sources": "https://github.com/LuckyOwlStudios/races"
+        "sources": "https://github.com/LuckyOwlStudios/sentience"
     },
     "license": "${license}",
     "environment": "*",
     "entrypoints": {
         "main": [
-            "net.luckyowlstudios.races.RacesFabric"
+            "net.luckyowlstudios.sentience.SentienceFabric"
         ],
         "fabric-gametest": [
-            "net.luckyowlstudios.races.test.RacesGameTests"
+            "net.luckyowlstudios.sentience.test.SentienceGameTests"
         ]
     },
     "mixins": [
