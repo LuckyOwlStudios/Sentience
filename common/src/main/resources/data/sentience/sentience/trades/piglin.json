@@ -1,0 +1,151 @@
+{
+  "entities": "minecraft:piglin",
+  "offers_per_mob": 5,
+  "trade_sound": "minecraft:entity.piglin.admiring_item",
+  "trades": [
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 4
+      },
+      "gives": {
+        "id": "minecraft:crying_obsidian",
+        "count": 2
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 2
+      },
+      "gives": {
+        "id": "minecraft:blackstone",
+        "count": 8
+      },
+      "max_uses": 16,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 3
+      },
+      "gives": {
+        "id": "minecraft:soul_sand",
+        "count": 6
+      },
+      "max_uses": 12,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 3
+      },
+      "gives": {
+        "id": "minecraft:quartz",
+        "count": 8
+      },
+      "max_uses": 12,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 5
+      },
+      "gives": {
+        "id": "minecraft:magma_cream",
+        "count": 3
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 3
+      },
+      "gives": {
+        "id": "minecraft:fire_charge",
+        "count": 3
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 6
+      },
+      "gives": {
+        "id": "minecraft:obsidian",
+        "count": 4
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 3
+      },
+      "gives": {
+        "id": "minecraft:nether_wart",
+        "count": 6
+      },
+      "max_uses": 12,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 8
+      },
+      "gives": {
+        "id": "minecraft:spectral_arrow",
+        "count": 8
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:gold_ingot",
+        "count": 16
+      },
+      "gives": {
+        "id": "minecraft:gilded_blackstone",
+        "count": 1
+      },
+      "max_uses": 2,
+      "xp": 5
+    },
+    {
+      "wants": {
+        "id": "minecraft:cooked_porkchop",
+        "count": 6
+      },
+      "gives": {
+        "id": "minecraft:gold_ingot",
+        "count": 1
+      },
+      "max_uses": 12,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:leather",
+        "count": 6
+      },
+      "gives": {
+        "id": "minecraft:gold_ingot",
+        "count": 1
+      },
+      "max_uses": 12,
+      "xp": 1
+    }
+  ]
+}

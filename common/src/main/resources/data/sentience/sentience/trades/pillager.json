@@ -1,0 +1,91 @@
+{
+  "entities": "minecraft:pillager",
+  "offers_per_mob": 4,
+  "trade_sound": "minecraft:entity.pillager.celebrate",
+  "trades": [
+    {
+      "wants": {
+        "id": "minecraft:emerald",
+        "count": 6
+      },
+      "gives": {
+        "id": "minecraft:crossbow",
+        "count": 1
+      },
+      "max_uses": 3,
+      "xp": 5
+    },
+    {
+      "wants": {
+        "id": "minecraft:emerald",
+        "count": 1
+      },
+      "gives": {
+        "id": "minecraft:arrow",
+        "count": 16
+      },
+      "max_uses": 12,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:emerald",
+        "count": 3
+      },
+      "gives": {
+        "id": "minecraft:firework_rocket",
+        "count": 4
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:emerald",
+        "count": 2
+      },
+      "gives": {
+        "id": "minecraft:iron_ingot",
+        "count": 3
+      },
+      "max_uses": 8,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:emerald",
+        "count": 12
+      },
+      "gives": {
+        "id": "minecraft:ominous_bottle",
+        "count": 1
+      },
+      "max_uses": 2,
+      "xp": 10
+    },
+    {
+      "wants": {
+        "id": "minecraft:string",
+        "count": 14
+      },
+      "gives": {
+        "id": "minecraft:emerald",
+        "count": 1
+      },
+      "max_uses": 12,
+      "xp": 1
+    },
+    {
+      "wants": {
+        "id": "minecraft:stick",
+        "count": 24
+      },
+      "gives": {
+        "id": "minecraft:emerald",
+        "count": 1
+      },
+      "max_uses": 12,
+      "xp": 1
+    }
+  ]
+}

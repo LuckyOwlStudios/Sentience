@@ -19,6 +19,40 @@ Reputation starts at 0 and stays between -100 and 100. Every change shows in the
 - **Bartering**: when a piglin barters gold that *you* threw to it, your piglin reputation goes up.
 - **Raids**: everyone who is a Hero of the Village when a raid is defeated gets each race's `raid_victory` amount: a big boost with villagers and a big drop with illagers.
 
+## Trust and trading
+
+Once your reputation with **illagers** or **piglins** reaches **20**:
+
+- They stop picking fights with you. Illagers (and ravagers) won't target you, and piglins treat you as if you wore gold. They still fight back if you hit them, and raiders in an active raid still attack.
+- You can **trade** with them. Right-click a pillager, vindicator, evoker or piglin to open the normal trade screen. Piglins trade for gold, illagers for emeralds, and each mob type has its own list. Piglin brutes don't trade.
+- If your reputation drops below 20, both stop: an open trade screen closes, and they turn hostile again.
+
+Each mob picks a few trades from its list the first time someone trades with it, keeps them, and restocks once a day. Trades count toward reputation like villager trades (+1 each). Holding gold still lets you barter with piglins as usual, and sneaking skips the trade screen.
+
+### Trade lists
+
+One file per mob type at `data/<namespace>/sentience/trades/<name>.json`:
+
+```json
+{
+  "entities": "minecraft:piglin",
+  "offers_per_mob": 5,
+  "restock_ticks": 24000,
+  "trade_sound": "minecraft:entity.piglin.admiring_item",
+  "trades": [
+    {
+      "wants": { "id": "minecraft:gold_ingot", "count": 4 },
+      "wants_also": { "id": "minecraft:blackstone", "count": 8 },
+      "gives": { "id": "minecraft:crying_obsidian", "count": 2 },
+      "max_uses": 8,
+      "xp": 1
+    }
+  ]
+}
+```
+
+Only `entities`, `trades`, `wants` and `gives` are required. The reputation needed comes from the race's `trades_at`, and whether its members leave you alone from `peaceful_at`.
+
 ## Adding a race
 
 Races are data-driven. Add a JSON file to a datapack or your mod's resources at
@@ -35,7 +69,9 @@ Races are data-driven. Add a JSON file to a datapack or your mod's resources at
     "killed_member": -10,
     "traded": 1,
     "raid_victory": 0
-  }
+  },
+  "peaceful_at": 20,
+  "trades_at": 20
 }
 ```
 
@@ -43,6 +79,8 @@ Races are data-driven. Add a JSON file to a datapack or your mod's resources at
 - `name`, `color`: how the race is shown. Default to `?` and white.
 - `reputation`: the starting value and the bounds. Defaults to 0, -100 and 100.
 - `changes`: how much each built-in action changes reputation with this race. Leave one out (or use 0) to turn it off.
+- `peaceful_at`: at or above this reputation, members don't start fights with you. Leave out for never.
+- `trades_at`: at or above this reputation, members with a trade list trade with you. Leave out for never.
 
 Datapacks can also override the default races, e.g. replace `data/sentience/sentience/race/illagers.json` or add entities to the `sentience:villagers`, `sentience:illagers` and `sentience:piglins` entity type tags.
 

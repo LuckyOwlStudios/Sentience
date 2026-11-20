@@ -7,8 +7,10 @@
   "mixins": [
     "AbstractVillagerMixin",
     "LivingEntityMixin",
+    "MobMixin",
     "PiglinAiMixin",
     "PiglinMixin",
+    "PiglinSpecificSensorMixin",
     "RaidMixin"
   ],
   "client": [],

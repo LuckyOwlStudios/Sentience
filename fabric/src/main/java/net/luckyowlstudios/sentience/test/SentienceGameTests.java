@@ -11,6 +11,12 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.raid.Raid;
+import net.luckyowlstudios.sentience.trading.SentienceTrading;
+import net.luckyowlstudios.sentience.trading.TradingMob;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.entity.monster.Pillager;
+import net.minecraft.world.inventory.MerchantMenu;
 
 /**
  * Server-side checks run in CI with {@code ./gradlew :fabric:runGametest}. They only run when the
@@ -63,6 +69,75 @@ public class SentienceGameTests implements FabricGameTest {
         Piglin piglin = helper.spawn(EntityType.PIGLIN, 1, 2, 1);
         helper.assertTrue(piglin instanceof BarterTracker, "piglin mixin not applied");
         helper.assertTrue(Raid.class.getName() != null, "raid class not loaded");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void tradeTablesLoad(GameTestHelper helper) {
+        helper.assertTrue(SentienceTrading.tradeTable(helper.spawn(EntityType.PIGLIN, 1, 2, 1)).isPresent(), "piglin trades missing");
+        helper.assertTrue(SentienceTrading.tradeTable(helper.spawn(EntityType.PILLAGER, 1, 2, 1)).isPresent(), "pillager trades missing");
+        helper.assertTrue(SentienceTrading.tradeTable(helper.spawn(EntityType.VINDICATOR, 1, 2, 1)).isPresent(), "vindicator trades missing");
+        helper.assertTrue(SentienceTrading.tradeTable(helper.spawn(EntityType.EVOKER, 1, 2, 1)).isPresent(), "evoker trades missing");
+        helper.assertFalse(SentienceTrading.tradeTable(helper.spawn(EntityType.PIGLIN_BRUTE, 1, 2, 1)).isPresent(), "brutes shouldn't trade");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void tradingNeedsReputation(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        Pillager pillager = helper.spawn(EntityType.PILLAGER, 1, 2, 1);
+        player.moveTo(pillager.getX() + 1, pillager.getY(), pillager.getZ());
+
+        Reputation.set(player, Races.ILLAGERS, 19);
+        SentienceTrading.tryOpenTrades(pillager, player);
+        helper.assertFalse(player.containerMenu instanceof MerchantMenu, "traded below 20 reputation");
+
+        Reputation.set(player, Races.ILLAGERS, 20);
+        pillager.setTarget(null);
+        helper.assertTrue(SentienceTrading.tryOpenTrades(pillager, player), "trade click not handled");
+        helper.assertTrue(player.containerMenu instanceof MerchantMenu, "trade screen didn't open at 20 reputation");
+        helper.assertTrue(((TradingMob) pillager).sentience$getOffers().size() == 4, "pillager should offer 4 trades");
+
+        Reputation.set(player, Races.ILLAGERS, 10);
+        SentienceTrading.tickTrading(pillager);
+        helper.assertFalse(player.containerMenu instanceof MerchantMenu, "trade screen stayed open after reputation dropped");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void trustedPlayersAreNotTargeted(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        Pillager pillager = helper.spawn(EntityType.PILLAGER, 1, 2, 1);
+
+        Reputation.set(player, Races.ILLAGERS, 0);
+        pillager.setTarget(player);
+        helper.assertTrue(pillager.getTarget() == player, "pillager should target an untrusted player");
+
+        pillager.setTarget(null);
+        Reputation.set(player, Races.ILLAGERS, 20);
+        pillager.setTarget(player);
+        helper.assertTrue(pillager.getTarget() == null, "pillager targeted a trusted player");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void tradesAreSaved(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        Pillager pillager = helper.spawn(EntityType.PILLAGER, 1, 2, 1);
+        player.moveTo(pillager.getX() + 1, pillager.getY(), pillager.getZ());
+        Reputation.set(player, Races.ILLAGERS, 50);
+        pillager.setTarget(null);
+        SentienceTrading.tryOpenTrades(pillager, player);
+        player.closeContainer();
+
+        CompoundTag tag = pillager.saveWithoutId(new CompoundTag());
+        Pillager copy = EntityType.PILLAGER.create(helper.getLevel());
+        helper.assertTrue(copy != null, "couldn't create pillager");
+        copy.load(tag);
+        var saved = ((TradingMob) copy).sentience$getOffers();
+        helper.assertTrue(saved != null && saved.size() == 4, "trades weren't saved");
+        helper.assertTrue(ItemStack.isSameItemSameComponents(saved.get(0).getResult(),
+                ((TradingMob) pillager).sentience$getOffers().get(0).getResult()), "saved trades differ");
         helper.succeed();
     }
 }
