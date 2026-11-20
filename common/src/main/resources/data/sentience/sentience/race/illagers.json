@@ -1,11 +1,19 @@
 {
-  "name": { "translate": "race.sentience.illagers" },
+  "name": {
+    "translate": "race.sentience.illagers"
+  },
   "color": "#607D8B",
   "members": "#sentience:illagers",
-  "reputation": { "default": 0, "min": -100, "max": 100 },
+  "reputation": {
+    "default": 0,
+    "min": -100,
+    "max": 100
+  },
   "changes": {
     "killed_member": -5,
     "traded": 1,
     "raid_victory": -30
-  }
+  },
+  "peaceful_at": 20,
+  "trades_at": 20
 }

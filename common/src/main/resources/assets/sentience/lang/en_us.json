@@ -9,5 +9,6 @@
   "commands.sentience.get_all": "Reputation of %s:",
   "commands.sentience.get_all.entry": "  %s: %s",
   "commands.sentience.set": "%s now has %3$s reputation with %2$s",
-  "commands.sentience.reset": "Reset reputation for %s player(s)"
+  "commands.sentience.reset": "Reset reputation for %s player(s)",
+  "sentience.trading.not_trusted": "%s don't trust you enough to trade (%s/%s)"
 }

@@ -14,6 +14,8 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 
+import java.util.Optional;
+
 /**
  * A race: a group of creatures that share one reputation with each player.
  * <p>
@@ -26,7 +28,9 @@ import net.minecraft.world.entity.EntityType;
  *   "color": "#7FD17F",
  *   "members": "#mymod:elves",
  *   "reputation": { "default": 0, "min": -100, "max": 100 },
- *   "changes": { "killed_member": -10, "traded": 1, "raid_victory": 0 }
+ *   "changes": { "killed_member": -10, "traded": 1, "raid_victory": 0 },
+ *   "peaceful_at": 20,
+ *   "trades_at": 20
  * }
  * }</pre>
  * Everything except {@code members} is optional.
@@ -36,16 +40,23 @@ import net.minecraft.world.entity.EntityType;
  * @param members            entity types (a tag, a single id, or a list) that belong to this race
  * @param reputation         starting value and bounds of a player's reputation with this race
  * @param changes            how much built-in actions change reputation with this race
+ * @param peacefulAt         at or above this reputation, members won't start fights with the player
+ *                           (they still fight back, and raiders in a raid still attack). Empty: never.
+ * @param tradesAt           at or above this reputation, members with a trade table will trade with the
+ *                           player. Empty: never. Villagers ignore this and use vanilla trading.
  */
 public record Race(Component name, TextColor color, HolderSet<EntityType<?>> members,
-                   ReputationRange reputation, ReputationChanges changes) {
+                   ReputationRange reputation, ReputationChanges changes,
+                   Optional<Integer> peacefulAt, Optional<Integer> tradesAt) {
 
     public static final Codec<Race> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             ComponentSerialization.CODEC.optionalFieldOf("name", Component.literal("?")).forGetter(Race::name),
             TextColor.CODEC.optionalFieldOf("color", TextColor.fromRgb(0xFFFFFF)).forGetter(Race::color),
             RegistryCodecs.homogeneousList(Registries.ENTITY_TYPE).fieldOf("members").forGetter(Race::members),
             ReputationRange.CODEC.optionalFieldOf("reputation", ReputationRange.DEFAULT).forGetter(Race::reputation),
-            ReputationChanges.CODEC.optionalFieldOf("changes", ReputationChanges.NONE).forGetter(Race::changes)
+            ReputationChanges.CODEC.optionalFieldOf("changes", ReputationChanges.NONE).forGetter(Race::changes),
+            Codec.INT.optionalFieldOf("peaceful_at").forGetter(Race::peacefulAt),
+            Codec.INT.optionalFieldOf("trades_at").forGetter(Race::tradesAt)
     ).apply(instance, Race::new));
 
     /** Whether this entity type is listed as a member. Prefer {@link Races#getRace(Entity)} for entities. */

@@ -5,6 +5,7 @@ import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.registry.DynamicRegistries;
 import net.luckyowlstudios.sentience.api.Race;
 import net.luckyowlstudios.sentience.api.Races;
+import net.luckyowlstudios.sentience.api.TradeTable;
 import net.luckyowlstudios.sentience.impl.ReputationCommand;
 
 public class SentienceFabric implements ModInitializer {
@@ -13,6 +14,7 @@ public class SentienceFabric implements ModInitializer {
     public void onInitialize() {
         SentienceCommon.init();
         DynamicRegistries.registerSynced(Races.REGISTRY, Race.CODEC);
+        DynamicRegistries.register(TradeTable.REGISTRY, TradeTable.CODEC);
         CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) -> ReputationCommand.register(dispatcher));
     }
 }

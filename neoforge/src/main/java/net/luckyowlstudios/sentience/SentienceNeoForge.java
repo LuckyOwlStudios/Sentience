@@ -2,6 +2,7 @@ package net.luckyowlstudios.sentience;
 
 import net.luckyowlstudios.sentience.api.Race;
 import net.luckyowlstudios.sentience.api.Races;
+import net.luckyowlstudios.sentience.api.TradeTable;
 import net.luckyowlstudios.sentience.impl.ReputationCommand;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
@@ -20,6 +21,7 @@ public class SentienceNeoForge {
 
     private static void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(Races.REGISTRY, Race.CODEC, Race.CODEC);
+        event.dataPackRegistry(TradeTable.REGISTRY, TradeTable.CODEC);
     }
 
     private static void registerCommands(RegisterCommandsEvent event) {
