@@ -1,0 +1,11 @@
+{
+  "name": { "translate": "race.races.illagers" },
+  "color": "#607D8B",
+  "members": "#races:illagers",
+  "reputation": { "default": 0, "min": -100, "max": 100 },
+  "changes": {
+    "killed_member": -5,
+    "traded": 1,
+    "raid_victory": -30
+  }
+}
