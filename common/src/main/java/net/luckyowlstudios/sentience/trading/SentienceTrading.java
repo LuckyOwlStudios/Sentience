@@ -154,8 +154,8 @@ public final class SentienceTrading {
         }
         if (!canKeepTrading(mob, player)) {
             state.sentience$setTradingPlayer(null);
-            if (player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu) {
-                player.closeContainer();
+            if (player.containerMenu instanceof net.minecraft.world.inventory.MerchantMenu && player instanceof ServerPlayer serverPlayer) {
+                serverPlayer.closeContainer();
             }
             return;
         }
