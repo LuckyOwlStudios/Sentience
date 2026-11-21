@@ -8,6 +8,7 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin {
@@ -21,6 +22,13 @@ public abstract class LivingEntityMixin {
         // Same guard as vanilla, so an entity that is already dead isn't counted twice.
         if (!self.isRemoved() && !this.dead) {
             ReputationTriggers.onDeath(self, source);
+        }
+    }
+
+    @Inject(method = "hurt", at = @At("RETURN"))
+    private void sentience$onHurt(DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValueZ()) {
+            ReputationTriggers.onHurt((LivingEntity) (Object) this, source);
         }
     }
 }

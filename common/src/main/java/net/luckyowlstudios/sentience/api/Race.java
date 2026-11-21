@@ -30,7 +30,8 @@ import java.util.Optional;
  *   "reputation": { "default": 0, "min": -100, "max": 100 },
  *   "changes": { "killed_member": -10, "traded": 1, "raid_victory": 0 },
  *   "peaceful_at": 20,
- *   "trades_at": 20
+ *   "trades_at": 20,
+ *   "protects": { "entities": "#mymod:elf_pets", "hurt": -2, "killed": -15, "witness_radius": 16 }
  * }
  * }</pre>
  * Everything except {@code members} is optional.
@@ -44,10 +45,12 @@ import java.util.Optional;
  *                           (they still fight back, and raiders in a raid still attack). Empty: never.
  * @param tradesAt           at or above this reputation, members with a trade table will trade with the
  *                           player. Empty: never. Villagers ignore this and use vanilla trading.
+ * @param protects           creatures this race looks after: hurting or killing them in front of a member
+ *                           costs reputation. Empty: none.
  */
 public record Race(Component name, TextColor color, HolderSet<EntityType<?>> members,
                    ReputationRange reputation, ReputationChanges changes,
-                   Optional<Integer> peacefulAt, Optional<Integer> tradesAt) {
+                   Optional<Integer> peacefulAt, Optional<Integer> tradesAt, Optional<Protection> protects) {
 
     public static final Codec<Race> CODEC = RecordCodecBuilder.create(instance -> instance.group(
             ComponentSerialization.CODEC.optionalFieldOf("name", Component.literal("?")).forGetter(Race::name),
@@ -56,7 +59,8 @@ public record Race(Component name, TextColor color, HolderSet<EntityType<?>> mem
             ReputationRange.CODEC.optionalFieldOf("reputation", ReputationRange.DEFAULT).forGetter(Race::reputation),
             ReputationChanges.CODEC.optionalFieldOf("changes", ReputationChanges.NONE).forGetter(Race::changes),
             Codec.INT.optionalFieldOf("peaceful_at").forGetter(Race::peacefulAt),
-            Codec.INT.optionalFieldOf("trades_at").forGetter(Race::tradesAt)
+            Codec.INT.optionalFieldOf("trades_at").forGetter(Race::tradesAt),
+            Protection.CODEC.optionalFieldOf("protects").forGetter(Race::protects)
     ).apply(instance, Race::new));
 
     /** Whether this entity type is listed as a member. Prefer {@link Races#getRace(Entity)} for entities. */
@@ -97,15 +101,41 @@ public record Race(Component name, TextColor color, HolderSet<EntityType<?>> mem
      * @param killedMember applied when a player kills a member of this race
      * @param traded       applied when a player completes a trade with, or barters with, a member of this race
      * @param raidVictory  applied to every hero of the village when a raid is defeated
+     * @param killedRaider applied when a player kills a raider that is part of an active raid
      */
-    public record ReputationChanges(int killedMember, int traded, int raidVictory) {
+    public record ReputationChanges(int killedMember, int traded, int raidVictory, int killedRaider) {
 
-        public static final ReputationChanges NONE = new ReputationChanges(0, 0, 0);
+        public static final ReputationChanges NONE = new ReputationChanges(0, 0, 0, 0);
 
         public static final Codec<ReputationChanges> CODEC = RecordCodecBuilder.create(instance -> instance.group(
                 Codec.INT.optionalFieldOf("killed_member", 0).forGetter(ReputationChanges::killedMember),
                 Codec.INT.optionalFieldOf("traded", 0).forGetter(ReputationChanges::traded),
-                Codec.INT.optionalFieldOf("raid_victory", 0).forGetter(ReputationChanges::raidVictory)
+                Codec.INT.optionalFieldOf("raid_victory", 0).forGetter(ReputationChanges::raidVictory),
+                Codec.INT.optionalFieldOf("killed_raider", 0).forGetter(ReputationChanges::killedRaider)
         ).apply(instance, ReputationChanges::new));
+    }
+
+    /**
+     * Creatures a race cares about without being members, like village cats. A player who hurts or kills one
+     * while a member of the race is within {@code witness_radius} blocks loses reputation. Tamed animals
+     * (someone's pet) don't count.
+     *
+     * @param entities      the protected creatures
+     * @param hurt          applied each time a player hurts one (without killing it)
+     * @param killed        applied when a player kills one
+     * @param witnessRadius how close a member has to be to notice
+     */
+    public record Protection(HolderSet<EntityType<?>> entities, int hurt, int killed, double witnessRadius) {
+
+        public static final Codec<Protection> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                RegistryCodecs.homogeneousList(Registries.ENTITY_TYPE).fieldOf("entities").forGetter(Protection::entities),
+                Codec.INT.optionalFieldOf("hurt", 0).forGetter(Protection::hurt),
+                Codec.INT.optionalFieldOf("killed", 0).forGetter(Protection::killed),
+                Codec.doubleRange(0.0, 128.0).optionalFieldOf("witness_radius", 16.0).forGetter(Protection::witnessRadius)
+        ).apply(instance, Protection::new));
+
+        public boolean covers(EntityType<?> type) {
+            return this.entities.contains(type.builtInRegistryHolder());
+        }
     }
 }
