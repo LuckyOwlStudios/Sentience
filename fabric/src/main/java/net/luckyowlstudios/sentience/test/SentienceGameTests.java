@@ -11,6 +11,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.raid.Raid;
+import net.minecraft.world.entity.animal.Cat;
+import net.minecraft.world.entity.LivingEntity;
 import net.luckyowlstudios.sentience.trading.SentienceTrading;
 import net.luckyowlstudios.sentience.trading.TradingMob;
 import net.minecraft.nbt.CompoundTag;
@@ -138,6 +140,69 @@ public class SentienceGameTests implements FabricGameTest {
         helper.assertTrue(saved != null && saved.size() == 4, "trades weren't saved");
         helper.assertTrue(ItemStack.isSameItemSameComponents(saved.get(0).getResult(),
                 ((TradingMob) pillager).sentience$getOffers().get(0).getResult()), "saved trades differ");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "cat_witnessed")
+    public void hurtingVillageCatNearVillagerCostsReputation(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        helper.spawn(EntityType.VILLAGER, 1, 2, 1);
+        Cat cat = helper.spawn(EntityType.CAT, 2, 2, 2);
+        Reputation.set(player, Races.VILLAGERS, 0);
+
+        cat.hurt(helper.getLevel().damageSources().playerAttack(player), 1.0F);
+        helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == -2,
+                "hurting a village cat: expected -2, got " + Reputation.get(player, Races.VILLAGERS));
+
+        cat.invulnerableTime = 0;
+        cat.hurt(helper.getLevel().damageSources().playerAttack(player), Float.MAX_VALUE);
+        helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == -17,
+                "killing a village cat: expected -17, got " + Reputation.get(player, Races.VILLAGERS));
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "cat_witnessed")
+    public void hurtingATamedCatIsNotAVillageMatter(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        helper.spawn(EntityType.VILLAGER, 1, 2, 1);
+        Cat cat = helper.spawn(EntityType.CAT, 2, 2, 2);
+        cat.tame(player);
+        Reputation.set(player, Races.VILLAGERS, 0);
+        cat.hurt(helper.getLevel().damageSources().playerAttack(player), 1.0F);
+        helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == 0, "hurting your own cat cost reputation");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, batch = "cat_alone")
+    public void hurtingCatWithNoVillagerAroundIsFree(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        Cat cat = helper.spawn(EntityType.CAT, 2, 2, 2);
+        // Clear out any villager left over from another test nearby.
+        helper.getLevel().getEntitiesOfClass(LivingEntity.class, cat.getBoundingBox().inflate(20),
+                entity -> Races.isMember(entity, Races.VILLAGERS)).forEach(LivingEntity::discard);
+        Reputation.set(player, Races.VILLAGERS, 0);
+        cat.hurt(helper.getLevel().damageSources().playerAttack(player), 1.0F);
+        helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == 0, "no villager saw it, but reputation changed");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void killingRaidersDuringARaidPleasesVillagers(GameTestHelper helper) {
+        ServerPlayer player = helper.makeMockServerPlayerInLevel();
+        Reputation.set(player, Races.VILLAGERS, 0);
+        Reputation.set(player, Races.ILLAGERS, 0);
+
+        Pillager raider = helper.spawn(EntityType.PILLAGER, 1, 2, 1);
+        raider.setCurrentRaid(new Raid(9999, helper.getLevel(), helper.absolutePos(new net.minecraft.core.BlockPos(1, 2, 1))));
+        helper.assertTrue(raider.hasActiveRaid(), "test raid isn't active");
+        raider.hurt(helper.getLevel().damageSources().playerAttack(player), Float.MAX_VALUE);
+        helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == 2,
+                "killing a raider: expected villagers +2, got " + Reputation.get(player, Races.VILLAGERS));
+        helper.assertTrue(Reputation.get(player, Races.ILLAGERS) == -5, "illager kill penalty should still apply");
+
+        Pillager patrol = helper.spawn(EntityType.PILLAGER, 2, 2, 2);
+        patrol.hurt(helper.getLevel().damageSources().playerAttack(player), Float.MAX_VALUE);
+        helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == 2, "killing a pillager outside a raid shouldn't please villagers");
         helper.succeed();
     }
 }

@@ -10,6 +10,10 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 
+import net.minecraft.world.entity.TamableAnimal;
+import net.minecraft.world.phys.AABB;
+import org.jetbrains.annotations.Nullable;
+
 import java.util.Optional;
 
 /**
@@ -21,24 +25,65 @@ public final class ReputationTriggers {
     private ReputationTriggers() {
     }
 
-    /** A living entity died. If a player killed it, lower their reputation with its race. */
+    /** The player responsible for this damage: the attacker, their arrow, or whoever gets kill credit. */
+    @Nullable
+    public static ServerPlayer responsiblePlayer(LivingEntity victim, DamageSource source) {
+        if (source.getEntity() instanceof ServerPlayer player) {
+            return player;
+        }
+        // e.g. knocked into lava or off a cliff by a player
+        return victim.getKillCredit() instanceof ServerPlayer player ? player : null;
+    }
+
+    /** A living entity died. If a player killed it, lower their reputation with its race and any race protecting it. */
     public static void onDeath(LivingEntity victim, DamageSource source) {
         if (victim.level().isClientSide) {
             return;
         }
-        ServerPlayer killer = null;
-        if (source.getEntity() instanceof ServerPlayer player) {
-            killer = player;
-        } else if (victim.getKillCredit() instanceof ServerPlayer player) {
-            // e.g. knocked into lava or off a cliff by a player
-            killer = player;
-        }
+        ServerPlayer killer = responsiblePlayer(victim, source);
         if (killer == null) {
             return;
         }
-        ServerPlayer finalKiller = killer;
-        withRace(victim).ifPresent(race -> Reputation.add(finalKiller, race.key(),
+        withRace(victim).ifPresent(race -> Reputation.add(killer, race.key(),
                 race.value().changes().killedMember(), ReputationCause.KILLED_MEMBER));
+        onProtectedHarmed(victim, killer, true);
+    }
+
+    /** A living entity took damage and survived. */
+    public static void onHurt(LivingEntity victim, DamageSource source) {
+        if (victim.level().isClientSide || victim.isDeadOrDying()) {
+            return; // deaths are handled by onDeath
+        }
+        ServerPlayer attacker = source.getEntity() instanceof ServerPlayer player ? player : null;
+        if (attacker != null) {
+            onProtectedHarmed(victim, attacker, false);
+        }
+    }
+
+    /** Races that protect this creature, and have a member close enough to see, hold it against the player. */
+    private static void onProtectedHarmed(LivingEntity victim, ServerPlayer player, boolean killed) {
+        if (victim instanceof TamableAnimal pet && pet.isTame()) {
+            return; // someone's pet, not a village animal
+        }
+        Races.all(victim.level().registryAccess()).forEach(race -> race.value().protects().ifPresent(protection -> {
+            int amount = killed ? protection.killed() : protection.hurt();
+            if (amount == 0 || !protection.covers(victim.getType())) {
+                return;
+            }
+            AABB area = victim.getBoundingBox().inflate(protection.witnessRadius());
+            boolean witnessed = !victim.level().getEntitiesOfClass(LivingEntity.class, area,
+                    witness -> witness != victim && witness.isAlive() && Races.isMember(witness, race.key())).isEmpty();
+            if (witnessed) {
+                Reputation.add(player, race.key(), amount,
+                        killed ? ReputationCause.KILLED_PROTECTED : ReputationCause.HURT_PROTECTED);
+            }
+        }));
+    }
+
+    /** A player killed a raider that was part of an active raid. Applies every race's {@code killed_raider}. */
+    public static void onRaiderKilled(ServerPlayer player) {
+        Races.all(player.server.registryAccess()).forEach(race -> Reputation.add(player, race.key(),
+                race.value().changes().killedRaider(), ReputationCause.KILLED_RAIDER));
     }
 
     /** A player finished a trade with a merchant (villagers, wandering traders, or any modded merchant). */

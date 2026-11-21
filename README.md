@@ -8,7 +8,7 @@ Out of the box there are three races:
 
 | Race | Members | Killing one | Trading / bartering | Winning a raid |
 |------|---------|-------------|---------------------|----------------|
-| Villagers | villager, wandering trader | -10 | +1 per trade | +30 |
+| Villagers | villager, wandering trader | -10 | +1 per trade | +30, and +2 per raider you kill during a raid |
 | Illagers | `#minecraft:illager` (pillager, vindicator, evoker, illusioner), ravager | -5 | (no trades yet) | -30 |
 | Piglins | piglin, piglin brute | -10 | +1 per barter | 0 |
 
@@ -17,6 +17,8 @@ Reputation starts at 0 and stays between -100 and 100. Every change shows in the
 - **Killing** a creature lowers your reputation with its race. Kills by your arrows, and kills you get credit for (knocking something into lava), count too.
 - **Trading** with any merchant that belongs to a race (villagers and wandering traders by default) raises your reputation with it.
 - **Bartering**: when a piglin barters gold that *you* threw to it, your piglin reputation goes up.
+- **Village cats**: hurting a cat costs -2 villager reputation and killing one -15, but only if a villager is within 16 blocks to see it. Tamed cats (yours or anyone's) don't count.
+- **Defending a raid**: every illager (or other raider) you kill while it's part of an active raid gives +2 villager reputation, on top of the usual illager penalty for the kill.
 - **Raids**: everyone who is a Hero of the Village when a raid is defeated gets each race's `raid_victory` amount: a big boost with villagers and a big drop with illagers.
 
 ## Trust and trading
@@ -79,6 +81,8 @@ Races are data-driven. Add a JSON file to a datapack or your mod's resources at
 - `name`, `color`: how the race is shown. Default to `?` and white.
 - `reputation`: the starting value and the bounds. Defaults to 0, -100 and 100.
 - `changes`: how much each built-in action changes reputation with this race. Leave one out (or use 0) to turn it off.
+- `changes.killed_raider`: applied when you kill a raider that's part of an active raid.
+- `protects`: creatures the race cares about without being members. `{ "entities": "#sentience:village_pets", "hurt": -2, "killed": -15, "witness_radius": 16 }` means hurting or killing one costs that much, if a member is within `witness_radius` blocks. Tamed animals don't count. Add mobs to the `sentience:village_pets` tag to make villagers care about them too.
 - `peaceful_at`: at or above this reputation, members don't start fights with you. Leave out for never.
 - `trades_at`: at or above this reputation, members with a trade list trade with you. Leave out for never.
 
