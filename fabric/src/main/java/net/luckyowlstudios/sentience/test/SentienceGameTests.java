@@ -18,6 +18,8 @@ import net.minecraft.world.item.DyeColor;
 import java.util.Optional;
 import net.luckyowlstudios.sentience.kingdom.Kingdom;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
+import net.luckyowlstudios.sentience.kingdom.KingdomData;
+import net.luckyowlstudios.sentience.kingdom.KingdomTeams;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
 import net.minecraft.world.entity.animal.Cat;
 import net.minecraft.world.entity.LivingEntity;
@@ -269,6 +271,47 @@ public class SentienceGameTests implements FabricGameTest {
                 "a player founded a second kingdom");
         helper.assertTrue(Kingdoms.tryCreate(other, new CreateKingdomPayload(hall2, name + " II", DyeColor.BLUE)).isPresent(),
                 "second player couldn't found their own kingdom at a new town hall");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void kingdomsWorkLikeTeams(GameTestHelper helper) {
+        BlockPos local = new BlockPos(1, 0, 1);
+        helper.setBlock(local, SentienceVillage.townHall.get());
+        BlockPos hall = helper.absolutePos(local);
+        String name = "Teamland " + helper.getLevel().getGameTime();
+
+        ServerPlayer leader = helper.makeMockServerPlayerInLevel();
+        leader.moveTo(hall.getX() + 1.5, hall.getY(), hall.getZ() + 0.5);
+        Kingdom kingdom = Kingdoms.tryCreate(leader, new CreateKingdomPayload(hall, name, DyeColor.GREEN)).orElseThrow();
+        ServerPlayer friend = helper.makeMockServerPlayerInLevel();
+        ServerPlayer stranger = helper.makeMockServerPlayerInLevel();
+
+        helper.assertFalse(Kingdoms.join(friend, name), "joined without an invite");
+        helper.assertFalse(Kingdoms.invite(friend, stranger), "a non-member invited someone");
+        helper.assertTrue(Kingdoms.invite(leader, friend), "leader couldn't invite");
+        helper.assertTrue(Kingdoms.join(friend, name.toLowerCase()), "invited player couldn't join");
+        helper.assertTrue(kingdom.isMember(friend.getUUID()), "friend isn't a member");
+        helper.assertFalse(kingdom.isInvited(friend.getUUID()), "invite wasn't used up");
+        helper.assertTrue(leader.server.getScoreboard().getPlayerTeam(KingdomTeams.teamName(kingdom)) != null, "no vanilla team");
+
+        helper.assertFalse(Kingdoms.kick(friend, leader.getUUID()), "a member kicked the leader");
+        helper.assertFalse(Kingdoms.kick(leader, leader.getUUID()), "leader kicked themselves");
+        helper.assertTrue(Kingdoms.kick(leader, friend.getUUID()), "leader couldn't kick");
+        helper.assertFalse(kingdom.isMember(friend.getUUID()), "kicked player is still a member");
+
+        helper.assertFalse(Kingdoms.setBanner(leader, new ItemStack(net.minecraft.world.item.Items.STICK)), "a stick became the banner");
+        helper.assertTrue(Kingdoms.setBanner(leader, new ItemStack(net.minecraft.world.item.Items.GREEN_BANNER, 3)), "couldn't set banner");
+        helper.assertTrue(kingdom.banner().map(b -> b.is(net.minecraft.world.item.Items.GREEN_BANNER) && b.getCount() == 1).orElse(false), "banner not saved");
+
+        Kingdoms.invite(leader, friend);
+        Kingdoms.join(friend, name);
+        helper.assertTrue(Kingdoms.leave(leader), "leader couldn't leave");
+        helper.assertTrue(kingdom.isLeader(friend.getUUID()), "leadership didn't pass to the remaining member");
+        helper.assertTrue(Kingdoms.leave(friend), "last member couldn't leave");
+        helper.assertTrue(KingdomData.get(leader.server).byName(name).isEmpty(), "empty kingdom wasn't disbanded");
+        helper.assertTrue(Kingdoms.atTownHall(leader.server, GlobalPos.of(helper.getLevel().dimension(), hall)).isEmpty(),
+                "disbanded kingdom still holds the town hall");
         helper.succeed();
     }
 }

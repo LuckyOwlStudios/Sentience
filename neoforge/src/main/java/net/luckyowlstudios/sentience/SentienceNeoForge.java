@@ -12,6 +12,7 @@ import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
 import net.luckyowlstudios.sentience.client.SentienceClient;
+import net.luckyowlstudios.sentience.kingdom.KingdomCommand;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
 import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
@@ -82,5 +83,6 @@ public class SentienceNeoForge {
 
     private static void registerCommands(RegisterCommandsEvent event) {
         ReputationCommand.register(event.getDispatcher());
+        KingdomCommand.register(event.getDispatcher());
     }
 }

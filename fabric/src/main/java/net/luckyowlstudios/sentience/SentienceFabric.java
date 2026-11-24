@@ -11,6 +11,7 @@ import net.luckyowlstudios.sentience.village.SentienceVillage;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.luckyowlstudios.sentience.kingdom.KingdomCommand;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
 import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
@@ -29,7 +30,10 @@ public class SentienceFabric implements ModInitializer {
         SentienceCommon.init();
         DynamicRegistries.registerSynced(Races.REGISTRY, Race.CODEC);
         DynamicRegistries.register(TradeTable.REGISTRY, TradeTable.CODEC);
-        CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) -> ReputationCommand.register(dispatcher));
+        CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) -> {
+            ReputationCommand.register(dispatcher);
+            KingdomCommand.register(dispatcher);
+        });
         registerVillage();
         registerNetworking();
     }

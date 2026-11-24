@@ -12,7 +12,9 @@ import net.minecraft.world.level.saveddata.SavedData;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import net.minecraft.world.item.ItemStack;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -55,13 +57,69 @@ public final class KingdomData extends SavedData {
         return this.kingdoms.values().stream().anyMatch(kingdom -> kingdom.name().equalsIgnoreCase(name));
     }
 
-    Kingdom create(String name, DyeColor color, UUID founder, GlobalPos townHall) {
-        HashSet<UUID> members = new HashSet<>();
+    public Optional<Kingdom> byName(String name) {
+        return this.kingdoms.values().stream().filter(kingdom -> kingdom.name().equalsIgnoreCase(name.strip())).findFirst();
+    }
+
+    Kingdom create(MinecraftServer server, String name, DyeColor color, UUID founder, GlobalPos townHall) {
+        Set<UUID> members = new LinkedHashSet<>();
         members.add(founder);
-        Kingdom kingdom = new Kingdom(UUID.randomUUID(), name, color, founder, members, townHall);
+        Kingdom kingdom = new Kingdom(UUID.randomUUID(), name, color, founder, founder, members, townHall);
         this.kingdoms.put(kingdom.id(), kingdom);
+        this.kingdoms.values().forEach(other -> other.mutableInvites().remove(founder));
         this.setDirty();
+        KingdomTeams.sync(server, kingdom);
         return kingdom;
+    }
+
+    void invite(Kingdom kingdom, UUID player) {
+        kingdom.mutableInvites().add(player);
+        this.setDirty();
+    }
+
+    void addMember(MinecraftServer server, Kingdom kingdom, UUID player) {
+        kingdom.mutableMembers().add(player);
+        // Joining one kingdom uses up every invitation.
+        this.kingdoms.values().forEach(other -> other.mutableInvites().remove(player));
+        this.setDirty();
+        KingdomTeams.sync(server, kingdom);
+    }
+
+    /**
+     * Takes a player out of their kingdom. If they led it, the longest-standing member takes over;
+     * if nobody is left, the kingdom is disbanded and its Town Hall is free again.
+     *
+     * @return true if the kingdom was disbanded
+     */
+    boolean removeMember(MinecraftServer server, Kingdom kingdom, UUID player) {
+        KingdomTeams.removePlayer(server, kingdom, player);
+        kingdom.mutableMembers().remove(player);
+        this.setDirty();
+        if (kingdom.mutableMembers().isEmpty()) {
+            this.kingdoms.remove(kingdom.id());
+            KingdomTeams.remove(server, kingdom);
+            return true;
+        }
+        if (kingdom.isLeader(player)) {
+            kingdom.setLeader(kingdom.mutableMembers().iterator().next());
+        }
+        return false;
+    }
+
+    void setBanner(Kingdom kingdom, ItemStack banner) {
+        kingdom.setBanner(banner);
+        this.setDirty();
+    }
+
+    void setTownHall(Kingdom kingdom, GlobalPos pos) {
+        kingdom.setTownHall(pos);
+        this.setDirty();
+    }
+
+    /** The kingdom's Town Hall was broken: it keeps going, but needs a new one. */
+    void clearTownHall(Kingdom kingdom) {
+        kingdom.clearTownHall();
+        this.setDirty();
     }
 
     @Override
