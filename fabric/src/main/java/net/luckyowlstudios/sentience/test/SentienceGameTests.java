@@ -11,6 +11,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.raid.Raid;
+import net.luckyowlstudios.sentience.village.SentienceVillage;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.animal.Cat;
 import net.minecraft.world.entity.LivingEntity;
 import net.luckyowlstudios.sentience.trading.SentienceTrading;
@@ -204,5 +206,21 @@ public class SentienceGameTests implements FabricGameTest {
         patrol.hurt(helper.getLevel().damageSources().playerAttack(player), Float.MAX_VALUE);
         helper.assertTrue(Reputation.get(player, Races.VILLAGERS) == 2, "killing a pillager outside a raid shouldn't please villagers");
         helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void townHallIsAJobSite(GameTestHelper helper) {
+        BlockPos pos = new BlockPos(1, 2, 1);
+        helper.setBlock(pos, SentienceVillage.townHall.get());
+        helper.succeedWhen(() -> helper.assertTrue(helper.getLevel().getPoiManager().getType(helper.absolutePos(pos))
+                .map(type -> type.is(SentienceVillage.TOWN_HALL_POI)).orElse(false), "town hall isn't a point of interest"));
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 1200)
+    public void villagerAtTownHallBecomesGuide(GameTestHelper helper) {
+        helper.setBlock(new BlockPos(1, 2, 1), SentienceVillage.townHall.get());
+        Villager villager = helper.spawn(EntityType.VILLAGER, 3, 2, 3);
+        helper.succeedWhen(() -> helper.assertTrue(villager.getVillagerData().getProfession() == SentienceVillage.guide.get(),
+                "villager hasn't become the Guide yet (is " + villager.getVillagerData().getProfession() + ")"));
     }
 }

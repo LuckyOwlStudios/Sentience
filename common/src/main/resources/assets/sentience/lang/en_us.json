@@ -10,5 +10,8 @@
   "commands.sentience.get_all.entry": "  %s: %s",
   "commands.sentience.set": "%s now has %3$s reputation with %2$s",
   "commands.sentience.reset": "Reset reputation for %s player(s)",
-  "sentience.trading.not_trusted": "%s don't trust you enough to trade (%s/%s)"
+  "sentience.trading.not_trusted": "%s don't trust you enough to trade (%s/%s)",
+  "block.sentience.town_hall": "Town Hall",
+  "entity.minecraft.villager.guide": "Guide",
+  "entity.minecraft.zombie_villager.guide": "Guide"
 }
