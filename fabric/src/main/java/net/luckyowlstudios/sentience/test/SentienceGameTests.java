@@ -359,7 +359,7 @@ public class SentienceGameTests implements FabricGameTest {
                 "promoting an officer should hand over leadership");
 
         var view = KingdomScreens.view(officer, kingdom);
-        helper.assertTrue(view.viewerRank() == KingdomRank.LEADER && view.members().size() == 4, "screen view is wrong: " + view.members().size());
+        helper.assertTrue(view.viewerRank() == KingdomRank.LEADER && view.members().size() == 3, "screen should list the 3 members, not " + view.members().size());
         helper.succeed();
     }
 
@@ -370,6 +370,7 @@ public class SentienceGameTests implements FabricGameTest {
         BlockPos hall = helper.absolutePos(local);
         ServerPlayer leader = helper.makeMockServerPlayerInLevel();
         leader.moveTo(hall.getX() + 1.5, hall.getY(), hall.getZ() + 0.5);
+        leader.setGameMode(net.minecraft.world.level.GameType.SURVIVAL); // creative players keep their maps
         Kingdom kingdom = Kingdoms.tryCreate(leader, new CreateKingdomPayload(hall, "Mapton " + helper.getLevel().getGameTime(), DyeColor.YELLOW)).orElseThrow();
         helper.assertTrue(KingdomMaps.scale(leader, kingdom) == 0, "map should start at scale 0");
         ItemStack maps = new ItemStack(net.minecraft.world.item.Items.MAP, 5);
