@@ -16,6 +16,9 @@
         "main": [
             "net.luckyowlstudios.sentience.SentienceFabric"
         ],
+        "client": [
+            "net.luckyowlstudios.sentience.SentienceFabricClient"
+        ],
         "fabric-gametest": [
             "net.luckyowlstudios.sentience.test.SentienceGameTests"
         ]

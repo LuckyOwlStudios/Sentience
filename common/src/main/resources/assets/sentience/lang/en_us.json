@@ -13,5 +13,15 @@
   "sentience.trading.not_trusted": "%s don't trust you enough to trade (%s/%s)",
   "block.sentience.town_hall": "Town Hall",
   "entity.minecraft.villager.guide": "Guide",
-  "entity.minecraft.zombie_villager.guide": "Guide"
+  "entity.minecraft.zombie_villager.guide": "Guide",
+  "sentience.kingdom.create.title": "Create Your Kingdom",
+  "sentience.kingdom.create.name": "Kingdom Name",
+  "sentience.kingdom.create.color": "Kingdom Color",
+  "sentience.kingdom.create.confirm": "Create",
+  "sentience.kingdom.town_hall_of": "Town Hall of %s",
+  "sentience.kingdom.already_member": "You already belong to %s",
+  "sentience.kingdom.cannot_found": "You can't found a kingdom here",
+  "sentience.kingdom.invalid_name": "That isn't a valid kingdom name",
+  "sentience.kingdom.name_taken": "There's already a kingdom called %s",
+  "sentience.kingdom.founded": "You founded %s!"
 }

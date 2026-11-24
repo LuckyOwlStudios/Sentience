@@ -9,6 +9,11 @@ import net.luckyowlstudios.sentience.api.TradeTable;
 import net.luckyowlstudios.sentience.impl.ReputationCommand;
 import net.luckyowlstudios.sentience.village.SentienceVillage;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.luckyowlstudios.sentience.kingdom.Kingdoms;
+import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
+import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
 import net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -26,6 +31,14 @@ public class SentienceFabric implements ModInitializer {
         DynamicRegistries.register(TradeTable.REGISTRY, TradeTable.CODEC);
         CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) -> ReputationCommand.register(dispatcher));
         registerVillage();
+        registerNetworking();
+    }
+
+    private static void registerNetworking() {
+        PayloadTypeRegistry.playS2C().register(OpenCreateKingdomPayload.TYPE, OpenCreateKingdomPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(CreateKingdomPayload.TYPE, CreateKingdomPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(CreateKingdomPayload.TYPE,
+                (payload, context) -> Kingdoms.tryCreate(context.player(), payload));
     }
 
     private static void registerVillage() {

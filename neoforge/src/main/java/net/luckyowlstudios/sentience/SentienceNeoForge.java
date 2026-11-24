@@ -11,6 +11,13 @@ import net.minecraft.world.entity.npc.VillagerProfession;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
+import net.luckyowlstudios.sentience.client.SentienceClient;
+import net.luckyowlstudios.sentience.kingdom.Kingdoms;
+import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
+import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
 import net.neoforged.neoforge.registries.DeferredBlock;
@@ -48,6 +55,7 @@ public class SentienceNeoForge {
         SentienceVillage.townHall = TOWN_HALL;
         SentienceVillage.guide = GUIDE;
         modBus.addListener(SentienceNeoForge::addToCreativeTabs);
+        modBus.addListener(SentienceNeoForge::registerPayloads);
         modBus.addListener(SentienceNeoForge::registerDatapackRegistries);
         NeoForge.EVENT_BUS.addListener(SentienceNeoForge::registerCommands);
     }
@@ -55,6 +63,15 @@ public class SentienceNeoForge {
     private static void registerDatapackRegistries(DataPackRegistryEvent.NewRegistry event) {
         event.dataPackRegistry(Races.REGISTRY, Race.CODEC, Race.CODEC);
         event.dataPackRegistry(TradeTable.REGISTRY, TradeTable.CODEC);
+    }
+
+    private static void registerPayloads(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar("1");
+        // The lambda keeps client classes from loading on a dedicated server.
+        registrar.playToClient(OpenCreateKingdomPayload.TYPE, OpenCreateKingdomPayload.STREAM_CODEC,
+                (payload, context) -> SentienceClient.handle(payload));
+        registrar.playToServer(CreateKingdomPayload.TYPE, CreateKingdomPayload.STREAM_CODEC,
+                (payload, context) -> Kingdoms.tryCreate((ServerPlayer) context.player(), payload));
     }
 
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {

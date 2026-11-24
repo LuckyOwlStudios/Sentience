@@ -13,6 +13,12 @@ import net.minecraft.world.entity.npc.Villager;
 import net.minecraft.world.entity.raid.Raid;
 import net.luckyowlstudios.sentience.village.SentienceVillage;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.GlobalPos;
+import net.minecraft.world.item.DyeColor;
+import java.util.Optional;
+import net.luckyowlstudios.sentience.kingdom.Kingdom;
+import net.luckyowlstudios.sentience.kingdom.Kingdoms;
+import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
 import net.minecraft.world.entity.animal.Cat;
 import net.minecraft.world.entity.LivingEntity;
 import net.luckyowlstudios.sentience.trading.SentienceTrading;
@@ -220,7 +226,48 @@ public class SentienceGameTests implements FabricGameTest {
     public void villagerAtTownHallBecomesGuide(GameTestHelper helper) {
         helper.setBlock(new BlockPos(1, 2, 1), SentienceVillage.townHall.get());
         Villager villager = helper.spawn(EntityType.VILLAGER, 3, 2, 3);
-        helper.succeedWhen(() -> helper.assertTrue(villager.getVillagerData().getProfession() == SentienceVillage.guide.get(),
-                "villager hasn't become the Guide yet (is " + villager.getVillagerData().getProfession() + ")"));
+        helper.succeedWhen(() -> {
+            helper.assertTrue(villager.isAlive(), "villager died");
+            helper.assertTrue(villager.getVillagerData().getProfession() == SentienceVillage.guide.get(),
+                    "villager hasn't become the Guide yet (is " + villager.getVillagerData().getProfession()
+                            + ", job site memory " + villager.getBrain().getMemory(net.minecraft.world.entity.ai.memory.MemoryModuleType.POTENTIAL_JOB_SITE) + ")");
+        });
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void foundingAKingdomAtATownHall(GameTestHelper helper) {
+        BlockPos local = new BlockPos(1, 2, 1);
+        helper.setBlock(local, SentienceVillage.townHall.get());
+        BlockPos hall = helper.absolutePos(local);
+        String name = "Testoria " + helper.getLevel().getGameTime();
+
+        ServerPlayer founder = helper.makeMockServerPlayerInLevel();
+        founder.moveTo(hall.getX() + 1.5, hall.getY(), hall.getZ() + 0.5);
+        helper.assertTrue(Kingdoms.cleanName("   ").isEmpty(), "blank names should be refused");
+        helper.assertTrue(Kingdoms.tryCreate(founder, new CreateKingdomPayload(hall, "   ", DyeColor.RED)).isEmpty(), "founded with a blank name");
+
+        Optional<Kingdom> kingdom = Kingdoms.tryCreate(founder, new CreateKingdomPayload(hall, "  " + name + "  ", DyeColor.RED));
+        helper.assertTrue(kingdom.isPresent(), "couldn't found a kingdom");
+        helper.assertTrue(kingdom.get().name().equals(name), "name wasn't trimmed: '" + kingdom.get().name() + "'");
+        helper.assertTrue(kingdom.get().color() == DyeColor.RED, "wrong colour");
+        helper.assertTrue(Kingdoms.ofPlayer(founder).isPresent(), "founder isn't in the kingdom");
+        helper.assertTrue(Kingdoms.atTownHall(founder.server, GlobalPos.of(helper.getLevel().dimension(), hall)).isPresent(),
+                "town hall isn't set up");
+
+        ServerPlayer other = helper.makeMockServerPlayerInLevel();
+        other.moveTo(hall.getX() + 1.5, hall.getY(), hall.getZ() + 0.5);
+        helper.assertTrue(Kingdoms.tryCreate(other, new CreateKingdomPayload(hall, name + " II", DyeColor.BLUE)).isEmpty(),
+                "a second kingdom was founded at a set-up town hall");
+
+        BlockPos local2 = new BlockPos(3, 2, 3);
+        helper.setBlock(local2, SentienceVillage.townHall.get());
+        BlockPos hall2 = helper.absolutePos(local2);
+        helper.assertTrue(Kingdoms.tryCreate(other, new CreateKingdomPayload(hall2, name.toUpperCase(), DyeColor.BLUE)).isEmpty(),
+                "two kingdoms got the same name");
+        helper.assertTrue(Kingdoms.tryCreate(founder, new CreateKingdomPayload(hall2, name + " II", DyeColor.BLUE)).isEmpty(),
+                "a player founded a second kingdom");
+        helper.assertTrue(Kingdoms.tryCreate(other, new CreateKingdomPayload(hall2, name + " II", DyeColor.BLUE)).isPresent(),
+                "second player couldn't found their own kingdom at a new town hall");
+        helper.succeed();
     }
 }

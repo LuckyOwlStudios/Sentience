@@ -49,7 +49,7 @@ public final class SentienceVillage {
     }
 
     public static Block createTownHall() {
-        return new Block(BlockBehaviour.Properties.of()
+        return new TownHallBlock(BlockBehaviour.Properties.of()
                 .mapColor(MapColor.WOOD)
                 .instrument(NoteBlockInstrument.BASS)
                 .strength(2.5F)
