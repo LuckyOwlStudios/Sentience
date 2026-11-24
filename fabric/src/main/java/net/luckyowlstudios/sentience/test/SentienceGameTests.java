@@ -20,6 +20,9 @@ import net.luckyowlstudios.sentience.kingdom.Kingdom;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
 import net.luckyowlstudios.sentience.kingdom.KingdomData;
 import net.luckyowlstudios.sentience.kingdom.KingdomTeams;
+import net.luckyowlstudios.sentience.kingdom.KingdomRank;
+import net.luckyowlstudios.sentience.kingdom.KingdomMaps;
+import net.luckyowlstudios.sentience.kingdom.KingdomScreens;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
 import net.minecraft.world.entity.animal.Cat;
 import net.minecraft.world.entity.LivingEntity;
@@ -312,6 +315,71 @@ public class SentienceGameTests implements FabricGameTest {
         helper.assertTrue(KingdomData.get(leader.server).byName(name).isEmpty(), "empty kingdom wasn't disbanded");
         helper.assertTrue(Kingdoms.atTownHall(leader.server, GlobalPos.of(helper.getLevel().dimension(), hall)).isEmpty(),
                 "disbanded kingdom still holds the town hall");
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void kingdomRanksBansAndSettings(GameTestHelper helper) {
+        BlockPos local = new BlockPos(1, 0, 1);
+        helper.setBlock(local, SentienceVillage.townHall.get());
+        BlockPos hall = helper.absolutePos(local);
+        String name = "Rankshire " + helper.getLevel().getGameTime();
+        ServerPlayer leader = helper.makeMockServerPlayerInLevel();
+        leader.moveTo(hall.getX() + 1.5, hall.getY(), hall.getZ() + 0.5);
+        Kingdom kingdom = Kingdoms.tryCreate(leader, new CreateKingdomPayload(hall, name, DyeColor.PURPLE)).orElseThrow();
+        ServerPlayer officer = helper.makeMockServerPlayerInLevel();
+        ServerPlayer member = helper.makeMockServerPlayerInLevel();
+        ServerPlayer outsider = helper.makeMockServerPlayerInLevel();
+        Kingdoms.invite(leader, officer);
+        Kingdoms.join(officer, name);
+        Kingdoms.invite(leader, member);
+        Kingdoms.join(member, name);
+
+        helper.assertFalse(Kingdoms.promote(officer, member.getUUID()), "a member promoted someone");
+        helper.assertTrue(Kingdoms.promote(leader, officer.getUUID()), "leader couldn't promote");
+        helper.assertTrue(kingdom.rank(officer.getUUID()) == KingdomRank.OFFICER, "not an officer");
+        helper.assertTrue(Kingdoms.invite(officer, outsider), "officer couldn't invite");
+        helper.assertFalse(Kingdoms.kick(officer, leader.getUUID()), "officer kicked the leader");
+        helper.assertTrue(Kingdoms.ban(officer, member.getUUID()), "officer couldn't ban a member");
+        helper.assertFalse(kingdom.isMember(member.getUUID()), "banned member is still in");
+        helper.assertFalse(Kingdoms.join(member, name), "banned player rejoined");
+        helper.assertTrue(Kingdoms.unban(officer, member.getUUID()), "couldn't unban");
+
+        // Open kingdom: anyone not banned can join without an invite.
+        helper.assertFalse(Kingdoms.setSettings(officer, new Kingdom.Settings(false, false)), "officer changed settings");
+        helper.assertTrue(Kingdoms.setSettings(leader, new Kingdom.Settings(false, true)), "leader couldn't change settings");
+        helper.assertTrue(Kingdoms.join(member, name), "couldn't join an open kingdom");
+        helper.assertTrue(leader.server.getScoreboard().getPlayerTeam(KingdomTeams.teamName(kingdom)).isAllowFriendlyFire(),
+                "friendly fire setting didn't reach the team");
+
+        helper.assertTrue(Kingdoms.setColor(leader, DyeColor.CYAN) && kingdom.color() == DyeColor.CYAN, "couldn't recolor");
+        helper.assertTrue(Kingdoms.demote(leader, officer.getUUID()), "couldn't demote");
+        helper.assertTrue(Kingdoms.promote(leader, officer.getUUID()) && Kingdoms.promote(leader, officer.getUUID()), "couldn't promote twice");
+        helper.assertTrue(kingdom.isLeader(officer.getUUID()) && kingdom.rank(leader.getUUID()) == KingdomRank.OFFICER,
+                "promoting an officer should hand over leadership");
+
+        var view = KingdomScreens.view(officer, kingdom);
+        helper.assertTrue(view.viewerRank() == KingdomRank.LEADER && view.members().size() == 4, "screen view is wrong: " + view.members().size());
+        helper.succeed();
+    }
+
+    @GameTest(template = EMPTY_STRUCTURE)
+    public void kingdomMapGrowsWithEmptyMaps(GameTestHelper helper) {
+        BlockPos local = new BlockPos(1, 0, 1);
+        helper.setBlock(local, SentienceVillage.townHall.get());
+        BlockPos hall = helper.absolutePos(local);
+        ServerPlayer leader = helper.makeMockServerPlayerInLevel();
+        leader.moveTo(hall.getX() + 1.5, hall.getY(), hall.getZ() + 0.5);
+        Kingdom kingdom = Kingdoms.tryCreate(leader, new CreateKingdomPayload(hall, "Mapton " + helper.getLevel().getGameTime(), DyeColor.YELLOW)).orElseThrow();
+        helper.assertTrue(KingdomMaps.scale(leader, kingdom) == 0, "map should start at scale 0");
+        ItemStack maps = new ItemStack(net.minecraft.world.item.Items.MAP, 5);
+        for (int i = 0; i < 5; i++) {
+            KingdomMaps.grow(leader, kingdom, maps);
+        }
+        helper.assertTrue(KingdomMaps.scale(leader, kingdom) == KingdomMaps.MAX_SCALE, "map didn't grow to the max");
+        helper.assertTrue(maps.getCount() == 1, "should use one empty map per step, " + maps.getCount() + " left");
+        KingdomMaps.explore(leader);
+        KingdomScreens.open(leader, kingdom);
         helper.succeed();
     }
 }

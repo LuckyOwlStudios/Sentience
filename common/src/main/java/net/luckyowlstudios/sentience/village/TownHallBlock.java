@@ -1,6 +1,8 @@
 package net.luckyowlstudios.sentience.village;
 
+import net.luckyowlstudios.sentience.kingdom.KingdomMaps;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
+import net.minecraft.world.item.Items;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.GlobalPos;
 import net.minecraft.server.level.ServerLevel;
@@ -26,19 +28,25 @@ public class TownHallBlock extends Block {
         super(properties);
     }
 
-    /** Right-clicking with a banner sets it as the kingdom's banner (leaders only). */
+    /** Right-click with a banner to set the kingdom's banner (leader only), or with an empty map to grow its map. */
     @Override
     protected ItemInteractionResult useItemOn(ItemStack stack, BlockState state, Level level, BlockPos pos, Player player,
                                               InteractionHand hand, BlockHitResult hit) {
-        if (!(stack.getItem() instanceof BannerItem)) {
+        boolean banner = stack.getItem() instanceof BannerItem;
+        boolean emptyMap = stack.is(Items.MAP);
+        if (!banner && !emptyMap) {
             return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
         }
         if (player instanceof ServerPlayer serverPlayer) {
             GlobalPos hall = GlobalPos.of(level.dimension(), pos);
-            if (Kingdoms.atTownHall(serverPlayer.server, hall).filter(kingdom -> kingdom.isMember(player.getUUID())).isPresent()) {
+            var kingdom = Kingdoms.atTownHall(serverPlayer.server, hall).filter(k -> k.isMember(player.getUUID()));
+            if (kingdom.isEmpty()) {
+                return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+            }
+            if (banner) {
                 Kingdoms.setBanner(serverPlayer, stack);
             } else {
-                return ItemInteractionResult.PASS_TO_DEFAULT_BLOCK_INTERACTION;
+                KingdomMaps.grow(serverPlayer, kingdom.get(), stack);
             }
         }
         return ItemInteractionResult.sidedSuccess(level.isClientSide);

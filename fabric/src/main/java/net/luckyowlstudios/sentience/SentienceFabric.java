@@ -14,6 +14,9 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.luckyowlstudios.sentience.kingdom.KingdomCommand;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
+import net.luckyowlstudios.sentience.network.KingdomActionPayload;
+import net.luckyowlstudios.sentience.network.KingdomViewPayload;
+import net.luckyowlstudios.sentience.kingdom.KingdomScreens;
 import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
 import net.fabricmc.fabric.api.object.builder.v1.world.poi.PointOfInterestHelper;
 import net.minecraft.core.Registry;
@@ -41,6 +44,10 @@ public class SentienceFabric implements ModInitializer {
     private static void registerNetworking() {
         PayloadTypeRegistry.playS2C().register(OpenCreateKingdomPayload.TYPE, OpenCreateKingdomPayload.STREAM_CODEC);
         PayloadTypeRegistry.playC2S().register(CreateKingdomPayload.TYPE, CreateKingdomPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(KingdomViewPayload.TYPE, KingdomViewPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(KingdomActionPayload.TYPE, KingdomActionPayload.STREAM_CODEC);
+        ServerPlayNetworking.registerGlobalReceiver(KingdomActionPayload.TYPE,
+                (payload, context) -> KingdomScreens.handle(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(CreateKingdomPayload.TYPE,
                 (payload, context) -> Kingdoms.tryCreate(context.player(), payload));
     }

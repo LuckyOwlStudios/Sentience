@@ -1,5 +1,6 @@
 package net.luckyowlstudios.sentience.client;
 
+import net.luckyowlstudios.sentience.network.KingdomViewPayload;
 import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
 
 /** Client-side packet handling. Only ever loaded on the client. */
@@ -10,5 +11,9 @@ public final class SentienceClient {
 
     public static void handle(OpenCreateKingdomPayload payload) {
         CreateKingdomScreen.open(payload.townHall());
+    }
+
+    public static void handle(KingdomViewPayload payload) {
+        KingdomScreen.show(payload);
     }
 }

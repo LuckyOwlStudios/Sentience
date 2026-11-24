@@ -29,11 +29,11 @@ public final class KingdomTeams {
         PlayerTeam team = scoreboard.getPlayerTeam(name);
         if (team == null) {
             team = scoreboard.addPlayerTeam(name);
-            team.setAllowFriendlyFire(false);
             team.setSeeFriendlyInvisibles(true);
         }
         team.setDisplayName(Component.literal(kingdom.name()));
         team.setColor(chatColor(kingdom.color()));
+        team.setAllowFriendlyFire(kingdom.settings().friendlyFire());
         for (UUID member : kingdom.members()) {
             PlayerTeam finalTeam = team;
             playerName(server, member).ifPresent(playerName -> {

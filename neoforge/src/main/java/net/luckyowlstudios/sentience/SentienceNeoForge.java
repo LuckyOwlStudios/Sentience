@@ -15,6 +15,9 @@ import net.luckyowlstudios.sentience.client.SentienceClient;
 import net.luckyowlstudios.sentience.kingdom.KingdomCommand;
 import net.luckyowlstudios.sentience.kingdom.Kingdoms;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
+import net.luckyowlstudios.sentience.network.KingdomActionPayload;
+import net.luckyowlstudios.sentience.network.KingdomViewPayload;
+import net.luckyowlstudios.sentience.kingdom.KingdomScreens;
 import net.luckyowlstudios.sentience.network.OpenCreateKingdomPayload;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -73,6 +76,10 @@ public class SentienceNeoForge {
                 (payload, context) -> SentienceClient.handle(payload));
         registrar.playToServer(CreateKingdomPayload.TYPE, CreateKingdomPayload.STREAM_CODEC,
                 (payload, context) -> Kingdoms.tryCreate((ServerPlayer) context.player(), payload));
+        registrar.playToClient(KingdomViewPayload.TYPE, KingdomViewPayload.STREAM_CODEC,
+                (payload, context) -> SentienceClient.handle(payload));
+        registrar.playToServer(KingdomActionPayload.TYPE, KingdomActionPayload.STREAM_CODEC,
+                (payload, context) -> KingdomScreens.handle((ServerPlayer) context.player(), payload));
     }
 
     private static void addToCreativeTabs(BuildCreativeModeTabContentsEvent event) {

@@ -12,7 +12,8 @@
     "PiglinMixin",
     "PiglinSpecificSensorMixin",
     "RaidMixin",
-    "RaiderMixin"
+    "RaiderMixin",
+    "ServerPlayerMixin"
   ],
   "client": [],
   "server": [],

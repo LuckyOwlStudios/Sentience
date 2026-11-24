@@ -4,12 +4,8 @@ import net.luckyowlstudios.sentience.kingdom.Kingdom;
 import net.luckyowlstudios.sentience.network.CreateKingdomPayload;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.narration.NarratedElementType;
-import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.CommonComponents;
@@ -59,7 +55,7 @@ public class CreateKingdomScreen extends Screen {
         for (int i = 0; i < colors.length; i++) {
             int x = swatchLeft + (i % SWATCHES_PER_ROW) * (SWATCH_SIZE + SWATCH_GAP);
             int y = swatchTop + (i / SWATCHES_PER_ROW) * (SWATCH_SIZE + SWATCH_GAP);
-            this.addRenderableWidget(new ColorSwatch(x, y, colors[i]));
+            this.addRenderableWidget(new ColorSwatchButton(x, y, colors[i], () -> this.color, picked -> this.color = picked));
         }
 
         int buttonTop = swatchTop + 2 * (SWATCH_SIZE + SWATCH_GAP) + 12;
@@ -120,46 +116,4 @@ public class CreateKingdomScreen extends Screen {
         Minecraft.getInstance().setScreen(new CreateKingdomScreen(townHall));
     }
 
-    /** One colour to pick: drawn like a vanilla button with the colour inside, outlined in white when chosen. */
-    private final class ColorSwatch extends AbstractButton {
-
-        private final DyeColor swatchColor;
-
-        ColorSwatch(int x, int y, DyeColor swatchColor) {
-            super(x, y, SWATCH_SIZE, SWATCH_SIZE, colorName(swatchColor));
-            this.swatchColor = swatchColor;
-            this.setTooltip(Tooltip.create(colorName(swatchColor)));
-        }
-
-        @Override
-        public void onPress() {
-            CreateKingdomScreen.this.color = this.swatchColor;
-        }
-
-        @Override
-        protected void renderWidget(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
-            int x = this.getX();
-            int y = this.getY();
-            boolean selected = CreateKingdomScreen.this.color == this.swatchColor;
-            // Dark frame like a vanilla slot, then the colour.
-            graphics.fill(x, y, x + this.width, y + this.height, 0xFF000000);
-            graphics.fill(x + 1, y + 1, x + this.width - 1, y + this.height - 1, 0xFF8B8B8B);
-            graphics.fill(x + 3, y + 3, x + this.width - 3, y + this.height - 3, this.swatchColor.getTextureDiffuseColor() | 0xFF000000);
-            if (selected) {
-                graphics.renderOutline(x, y, this.width, this.height, 0xFFFFFFFF);
-                graphics.renderOutline(x + 1, y + 1, this.width - 2, this.height - 2, 0xFFFFFFFF);
-            } else if (this.isHoveredOrFocused()) {
-                graphics.renderOutline(x, y, this.width, this.height, 0xFFA0A0A0);
-            }
-        }
-
-        @Override
-        protected void updateWidgetNarration(NarrationElementOutput output) {
-            output.add(NarratedElementType.TITLE, this.getMessage());
-        }
-    }
-
-    private static Component colorName(DyeColor color) {
-        return Component.translatable("color.minecraft." + color.getName());
-    }
 }

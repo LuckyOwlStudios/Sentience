@@ -100,10 +100,62 @@ public final class KingdomData extends SavedData {
             KingdomTeams.remove(server, kingdom);
             return true;
         }
+        kingdom.mutableOfficers().remove(player);
         if (kingdom.isLeader(player)) {
-            kingdom.setLeader(kingdom.mutableMembers().iterator().next());
+            // Officers first, then whoever has been around longest.
+            UUID next = kingdom.mutableMembers().stream().filter(kingdom.mutableOfficers()::contains).findFirst()
+                    .orElse(kingdom.mutableMembers().iterator().next());
+            kingdom.setLeader(next);
+            kingdom.mutableOfficers().remove(next);
         }
         return false;
+    }
+
+    void setRank(Kingdom kingdom, UUID player, KingdomRank rank) {
+        switch (rank) {
+            case MEMBER -> kingdom.mutableOfficers().remove(player);
+            case OFFICER -> kingdom.mutableOfficers().add(player);
+            case LEADER -> {
+                // Handing over: the old leader stays on as an officer.
+                kingdom.mutableOfficers().add(kingdom.leader());
+                kingdom.mutableOfficers().remove(player);
+                kingdom.setLeader(player);
+            }
+            case NONE -> {
+            }
+        }
+        this.setDirty();
+    }
+
+    void ban(MinecraftServer server, Kingdom kingdom, UUID player) {
+        if (kingdom.isMember(player)) {
+            this.removeMember(server, kingdom, player);
+        }
+        kingdom.mutableInvites().remove(player);
+        kingdom.mutableBanned().add(player);
+        this.setDirty();
+    }
+
+    void unban(Kingdom kingdom, UUID player) {
+        kingdom.mutableBanned().remove(player);
+        this.setDirty();
+    }
+
+    void setColor(MinecraftServer server, Kingdom kingdom, DyeColor color) {
+        kingdom.setColor(color);
+        this.setDirty();
+        KingdomTeams.sync(server, kingdom);
+    }
+
+    void setSettings(MinecraftServer server, Kingdom kingdom, Kingdom.Settings settings) {
+        kingdom.setSettings(settings);
+        this.setDirty();
+        KingdomTeams.sync(server, kingdom);
+    }
+
+    void setMap(Kingdom kingdom, net.minecraft.world.level.saveddata.maps.MapId map) {
+        kingdom.setMap(map);
+        this.setDirty();
     }
 
     void setBanner(Kingdom kingdom, ItemStack banner) {

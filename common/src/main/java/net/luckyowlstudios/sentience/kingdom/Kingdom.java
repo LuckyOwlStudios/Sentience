@@ -8,6 +8,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.world.item.DyeColor;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.saveddata.maps.MapId;
 
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -36,13 +37,37 @@ public final class Kingdom {
             UUIDUtil.CODEC.listOf().fieldOf("members").forGetter(kingdom -> List.copyOf(kingdom.members)),
             UUIDUtil.CODEC.listOf().optionalFieldOf("invites", List.of()).forGetter(kingdom -> List.copyOf(kingdom.invites)),
             GlobalPos.CODEC.optionalFieldOf("town_hall").forGetter(Kingdom::townHall),
-            ItemStack.CODEC.optionalFieldOf("banner").forGetter(Kingdom::banner)
-    ).apply(instance, (id, name, color, founder, leader, members, invites, townHall, banner) -> {
+            ItemStack.CODEC.optionalFieldOf("banner").forGetter(Kingdom::banner),
+            UUIDUtil.CODEC.listOf().optionalFieldOf("officers", List.of()).forGetter(kingdom -> List.copyOf(kingdom.officers)),
+            UUIDUtil.CODEC.listOf().optionalFieldOf("banned", List.of()).forGetter(kingdom -> List.copyOf(kingdom.banned)),
+            Settings.CODEC.optionalFieldOf("settings", Settings.DEFAULT).forGetter(Kingdom::settings),
+            MapId.CODEC.optionalFieldOf("map").forGetter(Kingdom::map)
+    ).apply(instance, (id, name, color, founder, leader, members, invites, townHall, banner, officers, banned, settings, map) -> {
         Kingdom kingdom = new Kingdom(id, name, color, founder, leader.orElse(founder), new LinkedHashSet<>(members), townHall.orElse(null));
         kingdom.invites.addAll(invites);
         kingdom.banner = banner.orElse(ItemStack.EMPTY);
+        kingdom.officers.addAll(officers);
+        kingdom.banned.addAll(banned);
+        kingdom.settings = settings;
+        kingdom.map = map.orElse(null);
         return kingdom;
     }));
+
+    /**
+     * Preferences the leader can change.
+     *
+     * @param inviteOnly   players need an invitation to join; otherwise anyone who isn't banned can
+     * @param friendlyFire members can hurt each other
+     */
+    public record Settings(boolean inviteOnly, boolean friendlyFire) {
+
+        public static final Settings DEFAULT = new Settings(true, false);
+
+        public static final Codec<Settings> CODEC = RecordCodecBuilder.create(instance -> instance.group(
+                Codec.BOOL.optionalFieldOf("invite_only", true).forGetter(Settings::inviteOnly),
+                Codec.BOOL.optionalFieldOf("friendly_fire", false).forGetter(Settings::friendlyFire)
+        ).apply(instance, Settings::new));
+    }
 
     private final UUID id;
     private final String name;
@@ -53,6 +78,10 @@ public final class Kingdom {
     private final Set<UUID> invites = new HashSet<>();
     private GlobalPos townHall;
     private ItemStack banner = ItemStack.EMPTY;
+    private final Set<UUID> officers = new HashSet<>();
+    private final Set<UUID> banned = new HashSet<>();
+    private Settings settings = Settings.DEFAULT;
+    private MapId map;
 
     Kingdom(UUID id, String name, DyeColor color, UUID founder, UUID leader, Set<UUID> members, GlobalPos townHall) {
         this.id = id;
@@ -98,6 +127,33 @@ public final class Kingdom {
         return this.members.contains(player);
     }
 
+    public KingdomRank rank(UUID player) {
+        if (this.leader.equals(player)) {
+            return KingdomRank.LEADER;
+        }
+        if (this.officers.contains(player) && this.members.contains(player)) {
+            return KingdomRank.OFFICER;
+        }
+        return this.members.contains(player) ? KingdomRank.MEMBER : KingdomRank.NONE;
+    }
+
+    public boolean isBanned(UUID player) {
+        return this.banned.contains(player);
+    }
+
+    public Set<UUID> banned() {
+        return Set.copyOf(this.banned);
+    }
+
+    public Settings settings() {
+        return this.settings;
+    }
+
+    /** The kingdom's map, centred on its Town Hall. Grows when given empty maps. */
+    public Optional<MapId> map() {
+        return Optional.ofNullable(this.map);
+    }
+
     public boolean isInvited(UUID player) {
         return this.invites.contains(player);
     }
@@ -140,6 +196,22 @@ public final class Kingdom {
 
     void setTownHall(GlobalPos townHall) {
         this.townHall = townHall;
+    }
+
+    Set<UUID> mutableOfficers() {
+        return this.officers;
+    }
+
+    Set<UUID> mutableBanned() {
+        return this.banned;
+    }
+
+    void setSettings(Settings settings) {
+        this.settings = settings;
+    }
+
+    void setMap(MapId map) {
+        this.map = map;
     }
 
     void clearTownHall() {

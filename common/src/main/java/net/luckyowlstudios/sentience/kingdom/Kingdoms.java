@@ -45,7 +45,15 @@ public final class Kingdoms {
         GlobalPos hall = GlobalPos.of(player.level().dimension(), pos);
         Optional<Kingdom> owner = atTownHall(player.server, hall);
         if (owner.isPresent()) {
-            player.displayClientMessage(Component.translatable("sentience.kingdom.town_hall_of", owner.get().displayName()), true);
+            Kingdom kingdom = owner.get();
+            if (kingdom.isMember(player.getUUID())) {
+                KingdomScreens.open(player, kingdom);
+            } else if (ofPlayer(player).isEmpty() && !kingdom.isBanned(player.getUUID())
+                    && (!kingdom.settings().inviteOnly() || kingdom.isInvited(player.getUUID()))) {
+                player.sendSystemMessage(Component.translatable("sentience.kingdom.town_hall_of.open", kingdom.displayName(), joinButton(kingdom)));
+            } else {
+                player.displayClientMessage(Component.translatable("sentience.kingdom.town_hall_of", kingdom.displayName()), true);
+            }
             return;
         }
         Optional<Kingdom> own = ofPlayer(player);
@@ -106,22 +114,36 @@ public final class Kingdoms {
     }
 
     private static Optional<Kingdom> ledBy(ServerPlayer player) {
+        return withRank(player, KingdomRank.LEADER);
+    }
+
+    /** The player's kingdom, if their rank in it is at least {@code needed}; tells them otherwise. */
+    private static Optional<Kingdom> withRank(ServerPlayer player, KingdomRank needed) {
         Optional<Kingdom> kingdom = ofPlayer(player);
         if (kingdom.isEmpty()) {
             tell(player, "sentience.kingdom.not_in_kingdom");
             return Optional.empty();
         }
-        if (!kingdom.get().isLeader(player.getUUID())) {
-            tell(player, "sentience.kingdom.not_leader", kingdom.get().displayName());
+        if (!kingdom.get().rank(player.getUUID()).atLeast(needed)) {
+            tell(player, needed == KingdomRank.LEADER ? "sentience.kingdom.not_leader" : "sentience.kingdom.not_officer",
+                    kingdom.get().displayName());
             return Optional.empty();
         }
         return kingdom;
     }
 
+    private static String nameOf(MinecraftServer server, UUID player) {
+        return KingdomTeams.playerName(server, player).orElse(player.toString().substring(0, 8));
+    }
+
     /** The leader invites someone. They can then join with {@code /kingdom join}. */
     public static boolean invite(ServerPlayer leader, ServerPlayer target) {
-        Optional<Kingdom> kingdom = ledBy(leader);
+        Optional<Kingdom> kingdom = withRank(leader, KingdomRank.OFFICER);
         if (kingdom.isEmpty()) {
+            return false;
+        }
+        if (kingdom.get().isBanned(target.getUUID())) {
+            tell(leader, "sentience.kingdom.invite.banned", target.getDisplayName());
             return false;
         }
         KingdomData data = KingdomData.get(leader.server);
@@ -131,10 +153,7 @@ public final class Kingdoms {
         }
         data.invite(kingdom.get(), target.getUUID());
         tell(leader, "sentience.kingdom.invite.sent", target.getDisplayName());
-        Component join = Component.translatable("sentience.kingdom.invite.join_button").withStyle(style -> style
-                .withColor(net.minecraft.ChatFormatting.GREEN)
-                .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND,
-                        "/kingdom join " + kingdom.get().name())));
+        Component join = joinButton(kingdom.get());
         target.sendSystemMessage(Component.translatable("sentience.kingdom.invite.received",
                 leader.getDisplayName(), kingdom.get().displayName(), join));
         return true;
@@ -152,7 +171,11 @@ public final class Kingdoms {
             tell(player, "sentience.kingdom.unknown", kingdomName);
             return false;
         }
-        if (!kingdom.get().isInvited(player.getUUID())) {
+        if (kingdom.get().isBanned(player.getUUID())) {
+            tell(player, "sentience.kingdom.join.banned", kingdom.get().displayName());
+            return false;
+        }
+        if (kingdom.get().settings().inviteOnly() && !kingdom.get().isInvited(player.getUUID())) {
             tell(player, "sentience.kingdom.join.not_invited", kingdom.get().displayName());
             return false;
         }
@@ -163,8 +186,12 @@ public final class Kingdoms {
 
     /** The leader removes a member. */
     public static boolean kick(ServerPlayer leader, UUID target) {
-        Optional<Kingdom> kingdom = ledBy(leader);
+        Optional<Kingdom> kingdom = withRank(leader, KingdomRank.OFFICER);
         if (kingdom.isEmpty()) {
+            return false;
+        }
+        if (kingdom.get().isMember(target) && !outranks(kingdom.get(), leader.getUUID(), target)) {
+            tell(leader, "sentience.kingdom.outranked", nameOf(leader.server, target));
             return false;
         }
         String targetName = KingdomTeams.playerName(leader.server, target).orElse(target.toString());
@@ -200,6 +227,99 @@ public final class Kingdoms {
             broadcast(player.server, kingdom.get(), Component.translatable("sentience.kingdom.leave.member_left",
                     player.getDisplayName(), kingdom.get().displayName()));
         }
+        return true;
+    }
+
+    private static Component joinButton(Kingdom kingdom) {
+        return Component.translatable("sentience.kingdom.invite.join_button").withStyle(style -> style
+                .withColor(net.minecraft.ChatFormatting.GREEN)
+                .withClickEvent(new net.minecraft.network.chat.ClickEvent(net.minecraft.network.chat.ClickEvent.Action.RUN_COMMAND,
+                        "/kingdom join " + kingdom.name())));
+    }
+
+    private static boolean outranks(Kingdom kingdom, UUID actor, UUID target) {
+        return kingdom.rank(actor).ordinal() > kingdom.rank(target).ordinal();
+    }
+
+    /** Leader only: Member to Officer, or Officer to Leader (the old leader becomes an officer). */
+    public static boolean promote(ServerPlayer leader, UUID target) {
+        Optional<Kingdom> kingdom = ledBy(leader);
+        if (kingdom.isEmpty()) {
+            return false;
+        }
+        KingdomRank rank = kingdom.get().rank(target);
+        KingdomRank next = rank == KingdomRank.MEMBER ? KingdomRank.OFFICER : rank == KingdomRank.OFFICER ? KingdomRank.LEADER : null;
+        if (next == null) {
+            tell(leader, "sentience.kingdom.promote.cannot", nameOf(leader.server, target));
+            return false;
+        }
+        KingdomData.get(leader.server).setRank(kingdom.get(), target, next);
+        broadcast(leader.server, kingdom.get(), Component.translatable("sentience.kingdom.promote.done",
+                nameOf(leader.server, target), Component.translatable(next.translationKey())));
+        return true;
+    }
+
+    /** Leader only: Officer to Member. */
+    public static boolean demote(ServerPlayer leader, UUID target) {
+        Optional<Kingdom> kingdom = ledBy(leader);
+        if (kingdom.isEmpty()) {
+            return false;
+        }
+        if (kingdom.get().rank(target) != KingdomRank.OFFICER) {
+            tell(leader, "sentience.kingdom.demote.cannot", nameOf(leader.server, target));
+            return false;
+        }
+        KingdomData.get(leader.server).setRank(kingdom.get(), target, KingdomRank.MEMBER);
+        broadcast(leader.server, kingdom.get(), Component.translatable("sentience.kingdom.demote.done",
+                nameOf(leader.server, target), Component.translatable(KingdomRank.MEMBER.translationKey())));
+        return true;
+    }
+
+    /** Officers and up: kicks the player if they're a member and stops them joining or being invited. */
+    public static boolean ban(ServerPlayer actor, UUID target) {
+        Optional<Kingdom> kingdom = withRank(actor, KingdomRank.OFFICER);
+        if (kingdom.isEmpty()) {
+            return false;
+        }
+        if (target.equals(actor.getUUID()) || (kingdom.get().isMember(target) && !outranks(kingdom.get(), actor.getUUID(), target))) {
+            tell(actor, "sentience.kingdom.outranked", nameOf(actor.server, target));
+            return false;
+        }
+        String name = nameOf(actor.server, target);
+        KingdomData.get(actor.server).ban(actor.server, kingdom.get(), target);
+        broadcast(actor.server, kingdom.get(), Component.translatable("sentience.kingdom.ban.done", name, kingdom.get().displayName()));
+        ServerPlayer banned = actor.server.getPlayerList().getPlayer(target);
+        if (banned != null) {
+            tell(banned, "sentience.kingdom.ban.you_were_banned", kingdom.get().displayName());
+        }
+        return true;
+    }
+
+    public static boolean unban(ServerPlayer actor, UUID target) {
+        Optional<Kingdom> kingdom = withRank(actor, KingdomRank.OFFICER);
+        if (kingdom.isEmpty() || !kingdom.get().isBanned(target)) {
+            return false;
+        }
+        KingdomData.get(actor.server).unban(kingdom.get(), target);
+        tell(actor, "sentience.kingdom.unban.done", nameOf(actor.server, target));
+        return true;
+    }
+
+    public static boolean setColor(ServerPlayer leader, DyeColor color) {
+        Optional<Kingdom> kingdom = ledBy(leader);
+        if (kingdom.isEmpty()) {
+            return false;
+        }
+        KingdomData.get(leader.server).setColor(leader.server, kingdom.get(), color);
+        return true;
+    }
+
+    public static boolean setSettings(ServerPlayer leader, Kingdom.Settings settings) {
+        Optional<Kingdom> kingdom = ledBy(leader);
+        if (kingdom.isEmpty()) {
+            return false;
+        }
+        KingdomData.get(leader.server).setSettings(leader.server, kingdom.get(), settings);
         return true;
     }
 
