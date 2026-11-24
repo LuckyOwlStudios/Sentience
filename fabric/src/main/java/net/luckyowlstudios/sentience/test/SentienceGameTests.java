@@ -224,8 +224,9 @@ public class SentienceGameTests implements FabricGameTest {
 
     @GameTest(template = EMPTY_STRUCTURE, timeoutTicks = 1200)
     public void villagerAtTownHallBecomesGuide(GameTestHelper helper) {
-        helper.setBlock(new BlockPos(1, 2, 1), SentienceVillage.townHall.get());
-        Villager villager = helper.spawn(EntityType.VILLAGER, 3, 2, 3);
+        // On the floor, so the villager can walk up to it (y 2 would leave it floating out of reach).
+        helper.setBlock(new BlockPos(1, 0, 1), SentienceVillage.townHall.get());
+        Villager villager = helper.spawn(EntityType.VILLAGER, 3, 0, 3);
         helper.succeedWhen(() -> {
             helper.assertTrue(villager.isAlive(), "villager died");
             helper.assertTrue(villager.getVillagerData().getProfession() == SentienceVillage.guide.get(),
